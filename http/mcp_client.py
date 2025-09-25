@@ -14,6 +14,10 @@ async def test_server():
         print(">>>  Calling get weather tool for London")
         result = await client.call_tool("get_weather", {"city": "London"})
         print(f"<<<  Result: {result.data}")
+        # Call get_air_pollution tool
+        print(">>>  Calling get air_pollution tool for London")
+        result = await client.call_tool("get_air_pollution", {"city": "London", "forecast": True, "limit": 3})
+        print(f"<<<  Result: {result.data}")
 
 if __name__ == "__main__":
     asyncio.run(test_server())
