@@ -43,6 +43,18 @@ async def test_server():
                 print("Could not parse AQI from response.")
         else:
             print(f"Received an error or unexpected data: {result.data}")
+        
+        #List all available MCP Resources
+
+        # Get the london weather resource
+        print("\n>>> Getting resource 'mcp://weather/london.json'")
+        resource_data = await client.read_resource(uri="mcp://weather/london.json")
+        print(f"<<< Resource data (raw text): {resource_data[0].text}")
+        # The server returns a dict, which is serialized to a string in the Resource.text field
+        weather_json = json.loads(resource_data[0].text)
+        print("<<< Resource data (formatted JSON):")
+        print(json.dumps(weather_json, indent=2))
+
 
 
 if __name__ == "__main__":

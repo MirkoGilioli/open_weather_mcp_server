@@ -3,7 +3,9 @@ import httpx
 from typing import Optional, Tuple
 import logging
 import asyncio
+import json
 from fastmcp import FastMCP
+
 
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 if not OPENWEATHER_API_KEY:
@@ -22,7 +24,7 @@ app = FastMCP("openweather-mcp")
 # --- Helpers ---
 _geocode_cache = {}
 
-async def geocode_city(city: str) -> Optional[Tuple[float, float]]:
+async def _geocode_city(city: str) -> Optional[Tuple[float, float]]:
     """Use the OpenWeather Geocoding API to find coordinates for a city.
 
     This function is async and uses httpx.
@@ -48,6 +50,19 @@ async def geocode_city(city: str) -> Optional[Tuple[float, float]]:
         _geocode_cache[city] = (lat, lon)
         return lat, lon
 
+async def _get_weather_logic(city: str) -> dict:
+    """Core logic to fetch current weather for a city."""
+    coords = await _geocode_city(city)
+    if not coords:
+        return {"error": f"Could not resolve city '{city}'"}
+    lat, lon = coords
+    params = {"lat": lat, "lon": lon, "appid": OPENWEATHER_API_KEY, "units": "metric"}
+    async with httpx.AsyncClient() as client:
+        r = await client.get(WEATHER_URL, params=params, timeout=10)
+        if r.status_code != 200:
+            return {"error": f"Weather API failed: {r.text}"}
+        return r.json()
+
 # --- Tools ---
 
 @app.tool()
@@ -58,16 +73,7 @@ async def get_weather(city: str) -> dict:
     Args:
         city: The name of the city (e.g., "London", "Tokyo").
     """
-    coords = await geocode_city(city)
-    if not coords:
-        return {"error": f"Could not resolve city '{city}'"}
-    lat, lon = coords
-    params = {"lat": lat, "lon": lon, "appid": OPENWEATHER_API_KEY, "units": "metric"}
-    async with httpx.AsyncClient() as client:
-        r = await client.get(WEATHER_URL, params=params, timeout=10)
-        if r.status_code != 200:
-            return {"error": f"Weather API failed: {r.text}"}
-        return r.json()
+    return await _get_weather_logic(city)
 
 @app.tool()
 async def get_air_pollution(city: str, forecast: bool = False) -> dict:
@@ -79,7 +85,7 @@ async def get_air_pollution(city: str, forecast: bool = False) -> dict:
         city: The name of the city (e.g., "London", "Tokyo").
         forecast: If True, fetch the forecast instead of current data. Defaults to False.
     """
-    coords = await geocode_city(city)
+    coords = await _geocode_city(city)
     if not coords:
         return {"error": f"Could not resolve city '{city}'"}
     
@@ -92,6 +98,16 @@ async def get_air_pollution(city: str, forecast: bool = False) -> dict:
         if r.status_code != 200:
             return {"error": f"Air Pollution API failed: {r.text}"}
         return r.json()
+    
+# --- Resources ---
+@app.resource(
+        uri="mcp://weather/london.json",
+        description="Weather in London",
+        mime_type="application/json"
+)
+async def london_resource() -> dict:
+    return await _get_weather_logic("London")
+
 
 if __name__ == "__main__":
     logger.info(f"MCP Server started on port {os.getenv('PORT',8080)}")
