@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 from fastmcp import Client
 
@@ -13,11 +14,36 @@ async def test_server():
         # Call get_weather tool
         print(">>>  Calling get weather tool for London")
         result = await client.call_tool("get_weather", {"city": "London"})
-        print(f"<<<  Result: {result.data}")
+        # The result data is now a dictionary
+        print(f"<<<  Result (raw): {result.data}")
+        if isinstance(result.data, dict) and "error" not in result.data:
+            # Pretty-print the JSON for readability
+            print("<<< Result (formatted):")
+            print(json.dumps(result.data, indent=2))
+            try:
+                temp = result.data.get("main", {}).get("temp")
+                desc = result.data.get("weather", [{}])[0].get("description")
+                print(f"Weather in London: {temp}°C, {desc}")
+            except (IndexError, AttributeError):
+                print("Could not parse weather data from response.")
+        else:
+            print(f"Received an error or unexpected data: {result.data}")
+        
         # Call get_air_pollution tool
-        print(">>>  Calling get air_pollution tool for London")
-        result = await client.call_tool("get_air_pollution", {"city": "London", "forecast": True, "limit": 3})
-        print(f"<<<  Result: {result.data}")
+        print("\n>>>  Calling get air pollution tool for London")
+        result = await client.call_tool("get_air_pollution", {"city": "London"})
+        print(f"<<<  Result (raw): {result.data}")
+        if isinstance(result.data, dict) and "error" not in result.data:
+            print("<<< Result (formatted):")
+            print(json.dumps(result.data, indent=2))
+            try:
+                aqi = result.data.get("list", [{}])[0].get("main", {}).get("aqi")
+                print(f"Air Quality Index (AQI) in London: {aqi}")
+            except (IndexError, AttributeError):
+                print("Could not parse AQI from response.")
+        else:
+            print(f"Received an error or unexpected data: {result.data}")
+
 
 if __name__ == "__main__":
     asyncio.run(test_server())
