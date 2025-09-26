@@ -20,9 +20,12 @@ async def test_server():
             # Pretty-print the JSON for readability
             print("<<< Result (formatted):")
             print(json.dumps(result.data, indent=2))
-            temp = result.data.get("main", {}).get("temp")
-            desc = result.data.get("weather", [{}])[0].get("description")
-            print(f"Weather in London: {temp}°C, {desc}")
+            try:
+                temp = result.data.get("main", {}).get("temp")
+                desc = result.data.get("weather", [{}])[0].get("description")
+                print(f"Weather in London: {temp}°C, {desc}")
+            except (IndexError, AttributeError):
+                print("Could not parse weather data from response.")
         else:
             print(f"Received an error or unexpected data: {result.data}")
         
