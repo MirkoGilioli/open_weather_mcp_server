@@ -114,9 +114,12 @@ async def london_resource() -> dict:
         mime_type="text/plain"
 )
 async def ai_poem_resource() -> str:
-    with open("docs/ai_poem.txt", "r") as f:
-        return f.read()
-    return "File not found"
+    try:
+        with open("docs/ai_poem.txt", "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        logger.warning("File 'docs/ai_poem.txt' not found.")
+        return "File not found"
 
 
 if __name__ == "__main__":
