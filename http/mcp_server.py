@@ -108,6 +108,16 @@ async def get_air_pollution(city: str, forecast: bool = False) -> dict:
 async def london_resource() -> dict:
     return await _get_weather_logic("London")
 
+@app.resource(
+        uri="file://documents/ai_poem",
+        description="Read a file from the server",
+        mime_type="text/plain"
+)
+async def ai_poem_resource() -> str:
+    with open("docs/ai_poem.txt", "r") as f:
+        return f.read()
+    return "File not found"
+
 
 if __name__ == "__main__":
     logger.info(f"MCP Server started on port {os.getenv('PORT',8080)}")

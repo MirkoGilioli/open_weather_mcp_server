@@ -44,16 +44,23 @@ async def test_server():
         else:
             print(f"Received an error or unexpected data: {result.data}")
         
-        #List all available MCP Resources
+        # List and read all available MCP Resources
+        print("\n>>> Listing and reading all available resources")
+        resources = await client.list_resources()
+        for resource in resources:
+            print(f"\n>>> Getting resource '{resource.uri}'")
+            resource_data = await client.read_resource(uri=resource.uri)
+            content = resource_data[0].text
+            print(f"<<< Resource data (raw text): {content}")
 
-        # Get the london weather resource
-        print("\n>>> Getting resource 'mcp://weather/london.json'")
-        resource_data = await client.read_resource(uri="mcp://weather/london.json")
-        print(f"<<< Resource data (raw text): {resource_data[0].text}")
-        # The server returns a dict, which is serialized to a string in the Resource.text field
-        weather_json = json.loads(resource_data[0].text)
-        print("<<< Resource data (formatted JSON):")
-        print(json.dumps(weather_json, indent=2))
+            # Try to parse as JSON for pretty printing
+            try:
+                data_json = json.loads(content)
+                print("<<< Resource data (formatted JSON):")
+                print(json.dumps(data_json, indent=2))
+            except json.JSONDecodeError:
+                # Not a JSON, just print the raw text
+                print("<<< Resource data is not JSON.")
 
 
 
